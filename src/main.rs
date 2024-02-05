@@ -25,18 +25,16 @@ fn main() -> io::Result<()> {
 
 
     let mut zoom_value = 0.0;
-    let max_zoom = 50.0;
+    let max_zoom = 125.0;
 
     let rt = Runtime::new().unwrap();
     let location = rt.block_on(get_location());
-
-    print!("{}", location);
 
     let mut should_quit = false;
     while !should_quit {
         terminal.draw(get_ui(location.clone(), zoom_value))?;
         if zoom_value <= max_zoom {
-            zoom_value = zoom_value +1.0;
+            zoom_value = zoom_value + 1.0;
         }
 
         should_quit = handle_events()?;
@@ -74,13 +72,25 @@ async fn get_location() -> IpLocation {
 }
 
 fn get_world_map(lon: f64, lat: f64, zoom: f64, title: String) -> Canvas<'static, impl Fn(&mut Context)> {
-    let margin = 5.0;
+    let margin = 2.0;
+
+    fn get_bounds(lon: f64, lat: f64, zoom: f64) -> (f64, f64, f64, f64) {
+        let x_from = (-(180.0 - zoom)) + lon;
+        let x_to = (180.0 - zoom) + lon;
+
+
+        let y_from = (-(90.0 - (zoom) / 2.0)) + lat;
+        let y_to = (90.0 - (zoom) / 2.0) + lat;
+
+        (x_from, x_to, y_from, y_to)
+    }
+    let bounds = get_bounds(lon, lat, zoom);
 
     Canvas::default()
         .marker(Marker::Braille)
         .block(Block::default().title(title).borders(Borders::ALL))
-        .x_bounds([-(180.0 - zoom), 180.0 - zoom])
-        .y_bounds([-(90.0 - zoom), 90.0 - zoom])
+        .x_bounds([bounds.0, bounds.1])
+        .y_bounds([bounds.2, bounds.3])
         .paint(move |ctx| {
             ctx.draw(&Map {
                 resolution: MapResolution::High,
